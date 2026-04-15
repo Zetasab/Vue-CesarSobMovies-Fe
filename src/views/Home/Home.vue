@@ -135,10 +135,13 @@ function normalizeMovie(movie: TmdbMovie): ScrollerMovie {
 
 async function loadNowPlayingMovies(): Promise<void> {
   try {
-    const response = await tmdbApiService.get<TmdbNowPlayingResponse>('movie/popular', {
+    const response = await tmdbApiService.get<TmdbNowPlayingResponse>('popular', {
       language: 'es-ES',
       page: 1
     })
+
+    console.log("asd");
+    console.log(response);
 
     movies.value = response.results.map(normalizeMovie)
     heroMovies.value = movies.value.slice(0, 5)
@@ -156,7 +159,7 @@ async function loadNowPlayingMovies(): Promise<void> {
 
 async function loadTopRatedMovies(): Promise<void> {
   try {
-    const response = await tmdbApiService.get<TmdbNowPlayingResponse>('movie/top_rated', {
+    const response = await tmdbApiService.get<TmdbNowPlayingResponse>('top_rated', {
       language: 'es-ES',
       page: 1
     })
@@ -169,7 +172,7 @@ async function loadTopRatedMovies(): Promise<void> {
 
 async function loadUpcomingMovies(): Promise<void> {
   try {
-    const response = await tmdbApiService.get<TmdbNowPlayingResponse>('movie/upcoming', {
+    const response = await tmdbApiService.get<TmdbNowPlayingResponse>('upcoming', {
       language: 'es-ES',
       page: 1
     })
@@ -500,7 +503,7 @@ async function loadHeroVideos(list: ScrollerMovie[]): Promise<void> {
   const entries = await Promise.all(
     firstFiveMovies.map(async (movie) => {
       try {
-        const response = await tmdbApiService.get<MovieVideosResponse>(`movie/${movie.id}/videos`, {
+        const response = await tmdbApiService.get<MovieVideosResponse>(`${movie.id}/videos`, {
           language: 'es-ES'
         })
 

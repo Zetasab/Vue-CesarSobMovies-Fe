@@ -662,12 +662,12 @@ async function loadMovieDetails(): Promise<void> {
 
 	try {
 		const [movieData, credits, videos, images, recommendations, similar] = await Promise.all([
-			tmdbApiService.get<DetailedMovieData>(`movie/${parsedMovieId.value}`, { language: 'es-ES' }),
-			tmdbApiService.get<MovieCreditsResponse>(`movie/${parsedMovieId.value}/credits`, { language: 'es-ES' }),
-			tmdbApiService.get<MovieVideosResponse>(`movie/${parsedMovieId.value}/videos`, { language: 'es-ES' }),
-			tmdbApiService.get<MovieImagesResponse>(`movie/${parsedMovieId.value}/images`),
-			tmdbApiService.get<TmdbMovieListResponse>(`movie/${parsedMovieId.value}/recommendations`, { language: 'es-ES' }),
-			tmdbApiService.get<TmdbMovieListResponse>(`movie/${parsedMovieId.value}/similar`, { language: 'es-ES' })
+			tmdbApiService.get<DetailedMovieData>(`${parsedMovieId.value}`, { language: 'es-ES' }),
+			tmdbApiService.get<MovieCreditsResponse>(`${parsedMovieId.value}/credits`, { language: 'es-ES' }),
+			tmdbApiService.get<MovieVideosResponse>(`${parsedMovieId.value}/videos`, { language: 'es-ES' }),
+			tmdbApiService.get<MovieImagesResponse>(`${parsedMovieId.value}/images`),
+			tmdbApiService.get<TmdbMovieListResponse>(`${parsedMovieId.value}/recommendations`, { language: 'es-ES' }),
+			tmdbApiService.get<TmdbMovieListResponse>(`${parsedMovieId.value}/similar`, { language: 'es-ES' })
 		])
 
 		movie.value = movieData
@@ -683,13 +683,13 @@ async function loadMovieDetails(): Promise<void> {
 		let loadedReviews: MovieReviewItem[] = []
 
 		try {
-			const reviewsEs = await tmdbApiService.get<MovieReviewsResponse>(`movie/${parsedMovieId.value}/reviews`, {
+			const reviewsEs = await tmdbApiService.get<MovieReviewsResponse>(`${parsedMovieId.value}/reviews`, {
 				language: 'es-ES'
 			})
 			loadedReviews = reviewsEs.results ?? []
 
 			if (!loadedReviews.length) {
-				const reviewsEn = await tmdbApiService.get<MovieReviewsResponse>(`movie/${parsedMovieId.value}/reviews`, {
+				const reviewsEn = await tmdbApiService.get<MovieReviewsResponse>(`${parsedMovieId.value}/reviews`, {
 					language: 'en-US'
 				})
 				loadedReviews = reviewsEn.results ?? []

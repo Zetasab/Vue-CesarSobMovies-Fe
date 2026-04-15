@@ -143,6 +143,7 @@ async function searchMovies(text: string, page = 1, list: MovieListFilter = 'pop
     return
   }
 
+
   isLoading.value = true
   errorMessage.value = ''
 
@@ -154,10 +155,13 @@ async function searchMovies(text: string, page = 1, list: MovieListFilter = 'pop
           include_adult: false,
           page: normalizedPage
         })
-      : await tmdbApiService.get<TmdbSearchResponse>(`movie/${normalizedList}`, {
+      : await tmdbApiService.get<TmdbSearchResponse>(normalizedList, {
           language: 'es-ES',
           page: normalizedPage
         })
+
+        console.log("asd")
+    console.log(tmdbApiService);
 
     movies.value = response.results.map(normalizeMovie)
     currentPage.value = response.page

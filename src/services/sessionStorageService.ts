@@ -1,5 +1,4 @@
 const AUTH_SESSION_KEY = 'movie-auth-session'
-const TMDB_API_KEY_STORAGE_KEY = 'movie-tmdb-api-key'
 const REMEMBERED_USERNAME_STORAGE_KEY = 'movie-remembered-username'
 const REMEMBERED_PASSWORD_STORAGE_KEY = 'movie-remembered-password'
 
@@ -86,34 +85,6 @@ class SessionStorageService {
 
     localStorage.removeItem(AUTH_SESSION_KEY)
     sessionStorage.removeItem(AUTH_SESSION_KEY)
-  }
-
-  saveTmdbApiKey(apiKey: string): void {
-    if (!this.canUseStorage()) {
-      return
-    }
-
-    localStorage.setItem(TMDB_API_KEY_STORAGE_KEY, apiKey)
-    sessionStorage.removeItem(TMDB_API_KEY_STORAGE_KEY)
-  }
-
-  getTmdbApiKey(): string | null {
-    if (!this.canUseStorage()) {
-      return null
-    }
-
-    this.migrateSessionValueToLocalStorage(TMDB_API_KEY_STORAGE_KEY)
-
-    return this.readStorageValue(TMDB_API_KEY_STORAGE_KEY)
-  }
-
-  clearTmdbApiKey(): void {
-    if (!this.canUseStorage()) {
-      return
-    }
-
-    localStorage.removeItem(TMDB_API_KEY_STORAGE_KEY)
-    sessionStorage.removeItem(TMDB_API_KEY_STORAGE_KEY)
   }
 
   saveRememberedUsername(username: string): void {
