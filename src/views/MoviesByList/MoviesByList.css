@@ -1,0 +1,117 @@
+.movies-by-list-page {
+  min-height: 100dvh;
+  padding: clamp(5.4rem, 10vw, 6.2rem) clamp(1rem, 2.8vw, 2.1rem) 2rem;
+  background: linear-gradient(180deg, #00050d 0%, #071326 50%, #040913 100%);
+  color: #edf4ff;
+}
+
+.movies-by-list-header {
+  margin-bottom: 1rem;
+}
+
+.movies-by-list-header-top {
+  margin-bottom: 0.35rem;
+}
+
+.movies-by-list-title {
+  margin: 0;
+  font-size: clamp(1.45rem, 2.8vw, 2rem);
+  font-weight: 700;
+}
+
+.movies-by-list-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.movies-by-list-title-filter {
+  flex: 1 1 auto;
+  min-width: 16rem;
+}
+
+.movies-by-list-toggles {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex: 0 0 auto;
+}
+
+.movies-by-list-toggles :deep(.v-btn) {
+  text-transform: none;
+}
+
+.movies-by-list-toggles :deep(.v-btn.toggle-seen-active) {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #f7fbff;
+}
+
+.movies-by-list-toggles :deep(.v-btn.toggle-watched-active) {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #f7fbff;
+}
+
+.toggle-check-icon {
+  margin-right: 0.25rem;
+}
+
+.movies-by-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+.movies-by-list-content {
+  margin-top: 1rem;
+}
+
+.movies-by-list-pagination {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .movies-by-list-page {
+    padding-top: 5.1rem;
+  }
+
+  .movies-by-list-filters {
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .movies-by-list-title-filter {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .movies-by-list-toggles,
+  .movies-by-list-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .movies-by-list-actions :deep(.v-btn) {
+    flex: 1 1 calc(50% - 0.3rem);
+    min-width: 9rem;
+  }
+
+  .movies-by-list-pagination {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 460px) {
+  .movies-by-list-actions :deep(.v-btn) {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+}

@@ -1,0 +1,129 @@
+.my-movies-page {
+  min-height: 100dvh;
+  padding: clamp(5.4rem, 10vw, 6.2rem) clamp(1rem, 2.8vw, 2.1rem) 2rem;
+  background: linear-gradient(180deg, #00050d 0%, #071326 50%, #040913 100%);
+  color: #edf4ff;
+}
+
+.my-movies-header {
+  margin-bottom: 1rem;
+}
+
+.my-movies-title {
+  margin: 0;
+  font-size: clamp(1.45rem, 2.8vw, 2rem);
+  font-weight: 700;
+}
+
+.my-movies-subtitle {
+  margin: 0.4rem 0 0;
+  color: #b8cae3;
+  font-size: 0.95rem;
+}
+
+.my-movies-filters {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  flex-wrap: wrap;
+}
+
+.my-movies-title-filter {
+  flex: 1 1 auto;
+  min-width: 16rem;
+}
+
+.my-movies-toggles {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  flex: 0 0 auto;
+}
+
+.my-movies-toggles :deep(.v-btn) {
+  text-transform: none;
+}
+
+.my-movies-toggles :deep(.v-btn.toggle-seen-active) {
+  background: #22c55e;
+  border-color: #22c55e;
+  color: #f7fbff;
+}
+
+.my-movies-toggles :deep(.v-btn.toggle-watched-active) {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #f7fbff;
+}
+
+.my-movies-toggles :deep(.v-btn.toggle-seen-active:hover) {
+  background: #1eb45a;
+  border-color: #1eb45a;
+}
+
+.my-movies-toggles :deep(.v-btn.toggle-watched-active:hover) {
+  background: #2f73dd;
+  border-color: #2f73dd;
+}
+
+.toggle-check-icon {
+  margin-right: 0.25rem;
+}
+
+.my-movies-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  flex: 0 0 auto;
+}
+
+.my-movies-content {
+  margin-top: 1rem;
+}
+
+.my-movies-pagination {
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .my-movies-page {
+    padding-top: 5.1rem;
+  }
+
+  .my-movies-filters {
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .my-movies-title-filter {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .my-movies-toggles,
+  .my-movies-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .my-movies-actions :deep(.v-btn) {
+    flex: 1 1 calc(50% - 0.3rem);
+    min-width: 9rem;
+  }
+
+  .my-movies-pagination {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 460px) {
+  .my-movies-actions :deep(.v-btn) {
+    flex: 1 1 100%;
+    min-width: 100%;
+  }
+}

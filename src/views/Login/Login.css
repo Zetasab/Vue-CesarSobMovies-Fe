@@ -1,0 +1,171 @@
+.login-page {
+  width: 100%;
+  height: 100vh;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #0f2b55 0%, transparent 60%),
+    radial-gradient(900px 550px at 100% 120%, #071a36 0%, transparent 50%),
+    #00050d;
+}
+
+.login-shell {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.login-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.login-panel {
+  order: 1;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5rem;
+  backdrop-filter: blur(12px);
+  transform:translateY(33px);
+}
+
+.login-header {
+  margin-bottom: 1.5rem;
+}
+
+.login-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.login-logo {
+  display: inline-block;
+  width: 40px;
+  min-width: 40px;
+  height: auto;
+  margin: 0;
+}
+
+.login-kicker {
+  margin: 0 0 0.5rem;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: rgba(203, 213, 225, 0.8);
+}
+
+.login-title {
+  margin: 0;
+  margin-left:20px;
+  font-size: 2.3rem;
+  line-height: 1.2;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.login-help {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: rgb(203, 213, 225);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.login-input {
+  margin-bottom: 0.5rem;
+}
+
+.login-remember {
+  margin-top: -0.25rem;
+  margin-bottom: 0.25rem;
+}
+
+.login-error-text {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #ef4444;
+}
+
+.login-feedback {
+  margin-top: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.login-submit {
+  text-transform: none;
+  font-weight: 600;
+}
+
+.movie-panel {
+  position: relative;
+  order: 2;
+  width: 100%;
+  height: 100%;
+  background-image:
+    linear-gradient(120deg, rgba(7, 16, 32, 0.4), rgba(7, 16, 32, 0.1)),
+    url('https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?auto=format&fit=crop&w=1600&q=80');
+  background-size: cover;
+  background-position: center;
+}
+
+.movie-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to left, rgba(2, 6, 23, 0.1), rgba(2, 6, 23, 0.3), rgba(2, 6, 23, 0.9));
+}
+
+.movie-copy {
+  position: absolute;
+  left: 2rem;
+  right: 2rem;
+  bottom: 2rem;
+  color: #ffffff;
+}
+
+.movie-title {
+  margin: 0;
+  font-size: 1.5rem;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.movie-subtitle {
+  margin: 0.75rem 0 0;
+  font-size: 0.875rem;
+  color: rgba(226, 232, 240, 0.9);
+}
+
+@media (min-width: 768px) {
+  .login-layout {
+    flex-direction: row;
+  }
+
+  .login-panel {
+    width: 21%;
+    padding: 2.5rem;
+    transform:translateY(-50px) !important;
+  }
+
+  .movie-panel {
+    width: 79%;
+  }
+
+  .movie-copy {
+    right: 4rem;
+  }
+
+  .movie-title {
+    font-size: 2.25rem;
+  }
+
+  .movie-subtitle {
+    font-size: 1rem;
+  }
+}

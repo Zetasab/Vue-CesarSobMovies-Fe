@@ -1,0 +1,75 @@
+import { createRouter, createWebHistory } from 'vue-router'
+import Home from '../views/Home/Home.vue'
+import Login from '../views/Login/Login.vue'
+import DetailedMovie from '../views/DetailedMovie/DetailedMovie.vue'
+import MyMovies from '../views/MyMovies/MyMovies.vue'
+import MyLists from '../views/MyLists/MyLists.vue'
+import MoviesByList from '../views/MoviesByList/MoviesByList.vue'
+import Search from '../views/Search/Search.vue'
+import { authService } from '../services/authService'
+
+const router = createRouter({
+  history: createWebHistory(),
+  scrollBehavior() {
+    return { top: 0, left: 0 }
+  },
+  routes: [
+    {
+      path: '/',
+      name: 'home',
+      component: Home,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/buscar',
+      name: 'search',
+      component: Search,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/mis-peliculas',
+      name: 'my-movies',
+      component: MyMovies,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/mis-listas',
+      name: 'my-lists',
+      component: MyLists,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/mis-listas/:listId/peliculas',
+      name: 'movies-by-list',
+      component: MoviesByList,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/movie/:idtmdb',
+      name: 'detailed-movie',
+      component: DetailedMovie,
+      meta: { requiresAuth: true }
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: Login
+    }
+  ]
+})
+
+router.beforeEach((to) => {
+  const isAuthenticated = authService.isAuthenticated()
+
+  if (to.meta.requiresAuth && !isAuthenticated) {
+    return { name: 'login' }
+  }
+
+  if (to.name === 'login' && isAuthenticated) {
+    return { name: 'home' }
+  }
+
+  return true
+})
+
+export default router
