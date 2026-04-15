@@ -6,6 +6,7 @@ interface LoginApiResponse {
   accessToken?: string
   jwt?: string
   username?: string
+  email?: string
   profileImg?: string
   user?: unknown
 }
@@ -15,17 +16,26 @@ interface LoginUserInfo {
 }
 
 class AuthService {
-  async login(username: string, password: string, proyect: string): Promise<boolean> {
+  private lastLoginErrorMessage: string | null = null
+
+  getLastLoginErrorMessage(): string | null {
+    return this.lastLoginErrorMessage
+  }
+
+  async login(email: string, password: string, proyect: string): Promise<boolean> {
+    this.lastLoginErrorMessage = null
+
     try {
-      const response = await zetaApiService.login<LoginApiResponse>(username, password, proyect)
+      const response = await zetaApiService.login<LoginApiResponse>(email, password, proyect)
       const token = response.token ?? response.accessToken ?? response.jwt
 
       if (!token) {
+        this.lastLoginErrorMessage = 'No se recibió un token válido en el login.'
         return false
       }
 
       const session: AuthSession = {
-        username: response.username ?? username,
+        username: response.username ?? response.email ?? email,
         token,
         loggedInAt: new Date().toISOString(),
         profileImg: response.profileImg ?? (response.user as LoginUserInfo | undefined)?.profileImg,
@@ -34,8 +44,17 @@ class AuthService {
 
       sessionStorageService.saveAuthSession(session)
 
+      const isValidUser = await zetaApiService.checkUser()
+      if (!isValidUser) {
+        this.logout()
+        this.lastLoginErrorMessage = 'Usuario no autorizado.'
+        return false
+      }
+
       return true
-    } catch {
+    } catch (error) {
+      this.lastLoginErrorMessage = this.extractErrorMessage(error) ?? 'Credenciales incorrectas'
+      this.logout()
       return false
     }
   }
@@ -97,6 +116,31 @@ class AuthService {
       this.logout()
       return false
     }
+  }
+
+  private extractErrorMessage(error: unknown): string | null {
+    if (!error) {
+      return null
+    }
+
+    if (typeof error === 'object' && 'payload' in error) {
+      const payload = (error as { payload?: unknown }).payload
+      if (typeof payload === 'object' && payload && 'message' in payload) {
+        const payloadMessage = (payload as { message?: unknown }).message
+        if (typeof payloadMessage === 'string' && payloadMessage.trim()) {
+          return payloadMessage
+        }
+      }
+    }
+
+    if (typeof error === 'object' && error && 'message' in error) {
+      const errorMessage = (error as { message?: unknown }).message
+      if (typeof errorMessage === 'string' && errorMessage.trim()) {
+        return errorMessage
+      }
+    }
+
+    return null
   }
 }
 

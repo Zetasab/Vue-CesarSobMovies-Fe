@@ -40,12 +40,12 @@ class ZetaApiService extends BaseApiService {
     return this.request<T>(this.withMoviesPrefix(path), { method: 'DELETE' }, options)
   }
 
-  login<T>(username: string, password: string, proyect: string): Promise<T> {
+  login<T>(email: string, password: string, proyect: string): Promise<T> {
     void proyect
 
-    return this.post<T, { UserName: string; Password: string }>(
+    return this.post<T, { Email: string; UserName: string; Password: string }>(
       'login',
-      { UserName: username, Password: password },
+      { Email: email, UserName: email, Password: password },
       { requiresAuth: false }
     )
   }

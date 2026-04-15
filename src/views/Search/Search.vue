@@ -149,7 +149,7 @@ async function searchMovies(text: string, page = 1, list: MovieListFilter = 'pop
 
   try {
     const response = normalizedText
-      ? await tmdbApiService.get<TmdbSearchResponse>('search/movie', {
+      ? await tmdbApiService.get<TmdbSearchResponse>('search', {
           query: normalizedText,
           language: 'es-ES',
           include_adult: false,
@@ -160,9 +160,6 @@ async function searchMovies(text: string, page = 1, list: MovieListFilter = 'pop
           page: normalizedPage
         })
 
-        console.log("asd")
-    console.log(tmdbApiService);
-
     movies.value = response.results.map(normalizeMovie)
     currentPage.value = response.page
     totalPages.value = Math.max(1, Math.min(response.total_pages, 500))
@@ -170,7 +167,7 @@ async function searchMovies(text: string, page = 1, list: MovieListFilter = 'pop
     movies.value = []
     totalPages.value = 1
     currentPage.value = 1
-    errorMessage.value = 'No se pudieron cargar resultados desde TMDB.'
+    errorMessage.value = 'No se pudieron cargar resultados desde la API.'
   } finally {
     isLoading.value = false
   }
@@ -212,7 +209,7 @@ watch(
   <main class="search-page">
     <section class="search-header">
       <h1 class="search-title">Buscar películas</h1>
-      <p class="search-subtitle">Busca por nombre o por listas de TMDB.</p>
+      <p class="search-subtitle">Busca por nombre o por listas disponibles.</p>
     </section>
 
     <section class="search-form">

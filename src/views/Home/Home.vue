@@ -32,16 +32,6 @@ type MovieVideosResponse = {
   results: MovieVideo[]
 }
 
-type TmdbTrendingPerson = {
-  id: number
-  name: string
-  known_for_department: string
-}
-
-type TmdbTrendingPeopleResponse = {
-  results: TmdbTrendingPerson[]
-}
-
 type TmdbGenre = {
   id: number
   name: string
@@ -81,7 +71,6 @@ const trendingMovies = ref<ScrollerMovie[]>([])
 const topRatedMovies = ref<ScrollerMovie[]>([])
 const upcomingMovies = ref<ScrollerMovie[]>([])
 const movieGenres = ref<TmdbGenre[]>([])
-const trendingPeople = ref<TmdbTrendingPerson[]>([])
 const selectedTrendWindow = ref<TrendWindow>('day')
 const isHomeLoading = ref(true)
 const router = useRouter()
@@ -140,9 +129,6 @@ async function loadNowPlayingMovies(): Promise<void> {
       page: 1
     })
 
-    console.log("asd");
-    console.log(response);
-
     movies.value = response.results.map(normalizeMovie)
     heroMovies.value = movies.value.slice(0, 5)
     activeHeroIndex.value = 0
@@ -187,7 +173,7 @@ async function loadTrendingMovies(window: TrendWindow): Promise<void> {
   selectedTrendWindow.value = window
 
   try {
-    const response = await tmdbApiService.get<TmdbNowPlayingResponse>(`trending/movie/${window}`, {
+    const response = await tmdbApiService.get<TmdbNowPlayingResponse>(`trending/${window}`, {
       language: 'es-ES'
     })
 
@@ -199,25 +185,13 @@ async function loadTrendingMovies(window: TrendWindow): Promise<void> {
 
 async function loadMovieGenres(): Promise<void> {
   try {
-    const response = await tmdbApiService.get<TmdbGenresResponse>('genre/movie/list', {
+    const response = await tmdbApiService.get<TmdbGenresResponse>('genres', {
       language: 'es-ES'
     })
 
     movieGenres.value = response.genres
   } catch {
     movieGenres.value = []
-  }
-}
-
-async function loadTrendingPeople(): Promise<void> {
-  try {
-    const response = await tmdbApiService.get<TmdbTrendingPeopleResponse>('trending/person/day', {
-      language: 'es-ES'
-    })
-
-    trendingPeople.value = response.results.slice(0, 8)
-  } catch {
-    trendingPeople.value = []
   }
 }
 
@@ -314,8 +288,7 @@ onMounted(async () => {
     loadTrendingMovies('day'),
     loadTopRatedMovies(),
     loadUpcomingMovies(),
-    loadMovieGenres(),
-    loadTrendingPeople()
+    loadMovieGenres()
   ])
 
   isHomeLoading.value = false
@@ -680,14 +653,6 @@ onBeforeUnmount(() => {
         </article>
       </div>
 
-      <div v-if="trendingPeople.length" class="home-people">
-        <h3 class="home-people-title">Personas en tendencia</h3>
-        <div class="home-people-list">
-          <span v-for="person in trendingPeople" :key="person.id" class="home-people-chip">
-            {{ person.name }} · {{ person.known_for_department || 'Cine' }}
-          </span>
-        </div>
-      </div>
     </section>
 
     <section class="home-section home-platforms-section">

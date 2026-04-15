@@ -10,12 +10,13 @@ type FeedbackState = 'idle' | 'loading' | 'correct' | 'wrong'
 const router = useRouter()
 
 const state = reactive({
-  username: '',
+  email: '',
   password: ''
 })
 
 const feedbackState = ref<FeedbackState>('idle')
 const credentialsError = ref(false)
+const loginErrorMessage = ref('')
 const isBusy = computed(() => feedbackState.value !== 'idle')
 
 const showPassword = ref(false)
@@ -23,11 +24,11 @@ const rememberUser = ref(false)
 const proyect = 'mvs'
 
 onMounted(() => {
-  const rememberedUsername = authService.getRememberedUsername()
+  const rememberedEmail = authService.getRememberedUsername()
   const rememberedPassword = authService.getRememberedPassword()
 
-  if (rememberedUsername && rememberedPassword) {
-    state.username = rememberedUsername
+  if (rememberedEmail && rememberedPassword) {
+    state.email = rememberedEmail
     state.password = rememberedPassword
     rememberUser.value = true
   }
@@ -52,15 +53,16 @@ async function onSubmit(): Promise<void> {
   }
 
   credentialsError.value = false
+  loginErrorMessage.value = ''
   feedbackState.value = 'loading'
 
-  const isValidLogin = await authService.login(state.username, state.password, proyect)
+  const isValidLogin = await authService.login(state.email, state.password, proyect)
 
   feedbackState.value = isValidLogin ? 'correct' : 'wrong'
 
   if (isValidLogin) {
     if (rememberUser.value) {
-      authService.saveRememberedUsername(state.username)
+      authService.saveRememberedUsername(state.email)
       authService.saveRememberedPassword(state.password)
     } else {
       authService.clearRememberedUsername()
@@ -73,6 +75,7 @@ async function onSubmit(): Promise<void> {
   }
 
   credentialsError.value = true
+  loginErrorMessage.value = authService.getLastLoginErrorMessage() ?? 'Credenciales incorrectas'
   await delay(600)
   feedbackState.value = 'idle'
 }
@@ -93,11 +96,12 @@ async function onSubmit(): Promise<void> {
 
           <v-form @submit.prevent="onSubmit" class="login-form">
             <v-text-field
-              v-model="state.username"
-              label="Usuario"
+              v-model="state.email"
+              label="Email"
               variant="outlined"
-              autocomplete="username"
-              prepend-inner-icon="mdi-account"
+              type="email"
+              autocomplete="email"
+              prepend-inner-icon="mdi-email-outline"
               :error="credentialsError"
               :disabled="isBusy"
               color="primary"
@@ -124,7 +128,7 @@ async function onSubmit(): Promise<void> {
 
             <v-checkbox
               v-model="rememberUser"
-              label="Recordar usuario"
+              label="Recordar email"
               :disabled="isBusy"
               color="primary"
               density="comfortable"
@@ -132,7 +136,7 @@ async function onSubmit(): Promise<void> {
               class="login-remember"
             />
 
-            <p v-if="credentialsError" class="login-error-text">Credenciales incorrectas</p>
+            <p v-if="credentialsError" class="login-error-text">{{ loginErrorMessage }}</p>
 
             <LoadingResult :state="feedbackState"  class="login-feedback" />
 
