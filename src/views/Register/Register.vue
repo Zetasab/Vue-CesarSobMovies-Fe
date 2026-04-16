@@ -8,7 +8,8 @@ const router = useRouter()
 const state = reactive({
   email: '',
   username: '',
-  password: ''
+  password: '',
+  confirmPassword: ''
 })
 
 const acceptPolicies = ref(false)
@@ -33,8 +34,16 @@ const passwordChecks = computed(() => {
 })
 
 const isPasswordValid = computed(() => Object.values(passwordChecks.value).every(Boolean))
+const doPasswordsMatch = computed(
+  () => state.confirmPassword.length > 0 && state.password === state.confirmPassword
+)
 const isFormValid = computed(
-  () => validateEmail(state.email) && state.username.trim().length >= 3 && isPasswordValid.value && acceptPolicies.value
+  () =>
+    validateEmail(state.email) &&
+    state.username.trim().length >= 3 &&
+    isPasswordValid.value &&
+    doPasswordsMatch.value &&
+    acceptPolicies.value
 )
 
 function getErrorMessage(error: unknown): string {
@@ -59,6 +68,16 @@ async function onSubmit(): Promise<void> {
   errorMessage.value = ''
 
   if (!isFormValid.value) {
+    if (!state.confirmPassword.length) {
+      errorMessage.value = 'Debes repetir la contraseña.'
+      return
+    }
+
+    if (state.confirmPassword.length > 0 && !doPasswordsMatch.value) {
+      errorMessage.value = 'Las contraseñas no coinciden.'
+      return
+    }
+
     errorMessage.value = 'Revisa los campos y acepta las condiciones para continuar.'
     return
   }
@@ -126,6 +145,19 @@ async function onSubmit(): Promise<void> {
           prepend-inner-icon="mdi-lock-outline"
           :disabled="isSubmitting"
           :error="Boolean(state.password) && !isPasswordValid"
+          color="primary"
+          bg-color="#0a2142"
+        />
+
+        <v-text-field
+          v-model="state.confirmPassword"
+          label="Repetir contraseña"
+          variant="outlined"
+          type="password"
+          autocomplete="new-password"
+          prepend-inner-icon="mdi-lock-check-outline"
+          :disabled="isSubmitting"
+          :error="Boolean(state.confirmPassword) && !doPasswordsMatch"
           color="primary"
           bg-color="#0a2142"
         />
