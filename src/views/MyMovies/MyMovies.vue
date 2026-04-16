@@ -2,10 +2,12 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MyMoviesScroller from '../../components/MyMoviesScroller.vue'
-import { moviePrivateUserListService } from '../../services/moviePrivateUserListService'
+import { watchedMoviesService } from '../../services/watchedMoviesService'
+import { wishlistMoviesService } from '../../services/wishlistMoviesService'
 
 type PrivateMovieApiItem = {
   _id?: string
+  id?: number
   Title?: string
   IdTMDB?: number
   Id_TMDB?: number | string
@@ -27,25 +29,36 @@ type PrivateMovieApiItem = {
   IsSeen?: boolean
 }
 
+type MoviesCollectionFilter = 'wishlist' | 'watched'
+
 const titleFilter = ref('')
-const includeWatched = ref(true)
-const includeSeen = ref(true)
+const selectedCollection = ref<MoviesCollectionFilter>('wishlist')
+const allMovies = ref<PrivateMovieApiItem[]>([])
 const movies = ref<PrivateMovieApiItem[]>([])
 const isLoading = ref(false)
 const errorMessage = ref('')
 const isSyncingAfterMutation = ref(false)
 const currentPage = ref(1)
-const hasNextPage = ref(false)
 
 const route = useRoute()
 const router = useRouter()
 
-const hasAnyStatusFilter = computed(() => includeWatched.value || includeSeen.value)
-const STATUS_FILTERS_STORAGE_KEY = 'my-movies-status-filters'
+const COLLECTION_FILTER_STORAGE_KEY = 'my-movies-collection-filter'
 const PAGE_QUERY_KEY = 'page'
 const DATA_PER_PAGE = 50
-const paginationLength = computed(() => Math.max(currentPage.value, currentPage.value + (hasNextPage.value ? 1 : 0)))
-const shouldShowPagination = computed(() => currentPage.value > 1 || movies.value.length >= DATA_PER_PAGE)
+
+const filteredMovies = computed(() => {
+  const normalizedFilter = titleFilter.value.trim().toLowerCase()
+  if (!normalizedFilter) {
+    return allMovies.value
+  }
+
+  return allMovies.value.filter((movie) => (movie.Title ?? '').toLowerCase().includes(normalizedFilter))
+})
+
+const paginationLength = computed(() => Math.max(1, Math.ceil(filteredMovies.value.length / DATA_PER_PAGE)))
+const shouldShowPagination = computed(() => paginationLength.value > 1)
+const selectedCollectionLabel = computed(() => (selectedCollection.value === 'wishlist' ? 'wishlist' : 'watched'))
 
 function parseRoutePage(value: unknown): number {
   const routeValue = Array.isArray(value) ? value[0] : value
@@ -67,94 +80,115 @@ async function syncPageToRoute(page: number): Promise<void> {
   await router.replace({ query: nextQuery })
 }
 
-function loadStatusFiltersFromStorage(): void {
+function loadCollectionFilterFromStorage(): void {
   if (typeof window === 'undefined') {
     return
   }
 
   try {
-    const rawFilters = window.localStorage.getItem(STATUS_FILTERS_STORAGE_KEY)
-    if (!rawFilters) {
-      return
-    }
-
-    const parsed = JSON.parse(rawFilters) as { includeSeen?: unknown; includeWatched?: unknown }
-
-    if (typeof parsed.includeSeen === 'boolean') {
-      includeSeen.value = parsed.includeSeen
-    }
-
-    if (typeof parsed.includeWatched === 'boolean') {
-      includeWatched.value = parsed.includeWatched
+    const storedFilter = window.localStorage.getItem(COLLECTION_FILTER_STORAGE_KEY)
+    if (storedFilter === 'wishlist' || storedFilter === 'watched') {
+      selectedCollection.value = storedFilter
     }
   } catch {
-    window.localStorage.removeItem(STATUS_FILTERS_STORAGE_KEY)
+    window.localStorage.removeItem(COLLECTION_FILTER_STORAGE_KEY)
   }
 }
 
-function saveStatusFiltersToStorage(): void {
+function saveCollectionFilterToStorage(): void {
   if (typeof window === 'undefined') {
     return
   }
 
-  window.localStorage.setItem(
-    STATUS_FILTERS_STORAGE_KEY,
-    JSON.stringify({
-      includeSeen: includeSeen.value,
-      includeWatched: includeWatched.value
-    })
-  )
+  window.localStorage.setItem(COLLECTION_FILTER_STORAGE_KEY, selectedCollection.value)
 }
-const selectedStatuses = computed<string[]>({
-  get() {
-    const values: string[] = []
 
-    if (includeSeen.value) {
-      values.push('seen')
+type ApiMovieShape = Record<string, unknown>
+
+function readStringValue(source: ApiMovieShape, keys: string[]): string {
+  for (const key of keys) {
+    const rawValue = source[key]
+    if (typeof rawValue === 'string') {
+      return rawValue
     }
-
-    if (includeWatched.value) {
-      values.push('watched')
-    }
-
-    return values
-  },
-  set(values: string[]) {
-    includeSeen.value = values.includes('seen')
-    includeWatched.value = values.includes('watched')
   }
-})
+
+  return ''
+}
+
+function readNumberValue(source: ApiMovieShape, keys: string[], fallback = 0): number {
+  for (const key of keys) {
+    const rawValue = source[key]
+    const parsedValue = Number(rawValue)
+    if (Number.isFinite(parsedValue)) {
+      return parsedValue
+    }
+  }
+
+  return fallback
+}
+
+function readBooleanValue(source: ApiMovieShape, keys: string[]): boolean {
+  for (const key of keys) {
+    const rawValue = source[key]
+    if (typeof rawValue === 'boolean') {
+      return rawValue
+    }
+  }
+
+  return false
+}
+
+function mapMovieSummaryToListItem(rawMovie: unknown, source: MoviesCollectionFilter): PrivateMovieApiItem {
+  const movie = (rawMovie as ApiMovieShape | null) ?? {}
+  const movieId = readNumberValue(movie, ['id', 'Id', 'movieId', 'MovieId'])
+
+  return {
+    id: movieId,
+    Title: readStringValue(movie, ['title', 'Title']),
+    IdTMDB: movieId,
+    OriginalTitle: readStringValue(movie, ['original_title', 'originalTitle', 'OriginalTitle']),
+    Overview: readStringValue(movie, ['overview', 'Overview']),
+    PosterPath: readStringValue(movie, ['poster_path', 'posterPath', 'PosterPath']),
+    BackdropPath: readStringValue(movie, ['backdrop_path', 'backdropPath', 'BackdropPath']),
+    ReleaseDate: readStringValue(movie, ['release_date', 'releaseDate', 'ReleaseDate']),
+    VoteAverage: readNumberValue(movie, ['vote_average', 'voteAverage', 'VoteAverage']),
+    VoteCount: readNumberValue(movie, ['vote_count', 'voteCount', 'VoteCount']),
+    Adult: readBooleanValue(movie, ['adult', 'Adult']),
+    OriginalLanguage: readStringValue(movie, ['original_language', 'originalLanguage', 'OriginalLanguage']),
+    Popularity: readNumberValue(movie, ['popularity', 'Popularity']),
+    IsWatched: source === 'wishlist',
+    IsSeen: source === 'watched'
+  }
+}
+
+function updateDisplayedMovies(): void {
+  const startIndex = (currentPage.value - 1) * DATA_PER_PAGE
+  const endIndex = startIndex + DATA_PER_PAGE
+  movies.value = filteredMovies.value.slice(startIndex, endIndex)
+}
 
 async function loadMyMovies(): Promise<void> {
-  if (!hasAnyStatusFilter.value) {
-    movies.value = []
-    hasNextPage.value = false
-    errorMessage.value = ''
-    return
-  }
-
   isLoading.value = true
   errorMessage.value = ''
 
   try {
-    const response = await moviePrivateUserListService.getMyPrivateUserMovies({
-      title: titleFilter.value.trim(),
-      isWatched: includeWatched.value ? true : null,
-      isSeen: includeSeen.value ? true : null,
-      page: currentPage.value,
-      dataPerPage: DATA_PER_PAGE
-    }) as unknown as PrivateMovieApiItem[]
+    const source = selectedCollection.value
+    const response = source === 'wishlist'
+      ? await wishlistMoviesService.getAllByUserId()
+      : await watchedMoviesService.getAllByUserId()
 
-    if (!response.length && currentPage.value > 1) {
-      await syncPageToRoute(currentPage.value - 1)
+    allMovies.value = (response as unknown[]).map((movie) => mapMovieSummaryToListItem(movie, source))
+
+    if (currentPage.value > paginationLength.value) {
+      await syncPageToRoute(paginationLength.value)
       return
     }
 
-    movies.value = response
-    hasNextPage.value = response.length === DATA_PER_PAGE
+    updateDisplayedMovies()
   } catch {
+    allMovies.value = []
     movies.value = []
-    hasNextPage.value = false
     errorMessage.value = 'No se pudieron cargar tus películas.'
   } finally {
     isLoading.value = false
@@ -174,60 +208,15 @@ function onPaginationChange(page: number): void {
   void setPage(page)
 }
 
-function getMovieId(movie: PrivateMovieApiItem): number {
-  const rawId = movie.IdTMDB ?? movie.idTMDB ?? movie.Id_TMDB ?? movie.id_tmdb ?? movie.idTmdb
-  const parsedId = Number(rawId)
-  return Number.isInteger(parsedId) && parsedId > 0 ? parsedId : 0
-}
-
 async function syncMoviesAfterMutation(): Promise<void> {
   if (isSyncingAfterMutation.value) {
-    return
-  }
-
-  if (!hasAnyStatusFilter.value) {
-    movies.value = []
-    hasNextPage.value = false
     return
   }
 
   isSyncingAfterMutation.value = true
 
   try {
-    const response = await moviePrivateUserListService.getMyPrivateUserMovies({
-      title: titleFilter.value.trim(),
-      isWatched: includeWatched.value ? true : null,
-      isSeen: includeSeen.value ? true : null,
-      page: currentPage.value,
-      dataPerPage: DATA_PER_PAGE
-    }) as unknown as PrivateMovieApiItem[]
-
-    if (!response.length && currentPage.value > 1) {
-      await syncPageToRoute(currentPage.value - 1)
-      return
-    }
-
-    const fetchedById = new Map<number, PrivateMovieApiItem>()
-    for (const movie of response) {
-      const movieId = getMovieId(movie)
-      if (movieId > 0) {
-        fetchedById.set(movieId, movie)
-      }
-    }
-
-    const prunedMovies = movies.value
-      .map((movie) => {
-        const movieId = getMovieId(movie)
-        if (!movieId) {
-          return null
-        }
-
-        return fetchedById.get(movieId) ?? null
-      })
-      .filter((movie): movie is PrivateMovieApiItem => movie !== null)
-
-    movies.value = prunedMovies.length || !movies.value.length ? prunedMovies : response
-    hasNextPage.value = response.length === DATA_PER_PAGE
+    await loadMyMovies()
   } finally {
     isSyncingAfterMutation.value = false
   }
@@ -239,27 +228,43 @@ async function applyFilters(): Promise<void> {
     return
   }
 
-  await loadMyMovies()
+  updateDisplayedMovies()
 }
 
 function resetFilters(): void {
   titleFilter.value = ''
-  includeWatched.value = true
-  includeSeen.value = true
   void applyFilters()
 }
 
-watch([includeSeen, includeWatched], () => {
-  saveStatusFiltersToStorage()
+watch(selectedCollection, async () => {
+  saveCollectionFilterToStorage()
+
+  if (currentPage.value !== 1) {
+    await syncPageToRoute(1)
+    return
+  }
+
+  await loadMyMovies()
 })
 
-loadStatusFiltersFromStorage()
+loadCollectionFilterFromStorage()
 
 watch(
   () => route.query[PAGE_QUERY_KEY],
   (routePage) => {
     currentPage.value = parseRoutePage(routePage)
-    void loadMyMovies()
+
+    if (currentPage.value > paginationLength.value) {
+      void syncPageToRoute(paginationLength.value)
+      return
+    }
+
+    if (!allMovies.value.length) {
+      void loadMyMovies()
+      return
+    }
+
+    updateDisplayedMovies()
   },
   { immediate: true }
 )
@@ -282,18 +287,22 @@ watch(
         clearable
         prepend-inner-icon="mdi-magnify"
         class="my-movies-title-filter"
-        @keyup.enter="loadMyMovies"
+        @keyup.enter="applyFilters"
       />
 
       <div class="my-movies-toggles">
-        <v-btn-toggle v-model="selectedStatuses" multiple color="primary" density="comfortable" variant="outlined">
-          <v-btn value="seen" :class="{ 'toggle-seen-active': includeSeen }">
-            <v-icon v-if="includeSeen" icon="mdi-check" size="16" class="toggle-check-icon" />
-            Vistas
+        <v-btn-toggle
+          v-model="selectedCollection"
+          mandatory
+          color="primary"
+          density="comfortable"
+          variant="outlined"
+        >
+          <v-btn value="wishlist" :class="{ 'toggle-watched-active': selectedCollection === 'wishlist' }">
+            Wishlist
           </v-btn>
-          <v-btn value="watched" :class="{ 'toggle-watched-active': includeWatched }">
-            <v-icon v-if="includeWatched" icon="mdi-check" size="16" class="toggle-check-icon" />
-            Por ver
+          <v-btn value="watched" :class="{ 'toggle-seen-active': selectedCollection === 'watched' }">
+            Watched
           </v-btn>
         </v-btn-toggle>
       </div>
@@ -311,17 +320,13 @@ watch(
 
       <v-progress-linear v-else-if="isLoading" indeterminate color="primary" />
 
-      <v-alert v-else-if="!hasAnyStatusFilter" type="info" variant="tonal" density="comfortable">
-        Activa al menos un estado para ver resultados.
-      </v-alert>
-
       <v-alert v-else-if="!movies.length" type="info" variant="tonal" density="comfortable">
-        No se encontraron películas con esos filtros.
+        No se encontraron películas en {{ selectedCollectionLabel }} con esos filtros.
       </v-alert>
 
       <MyMoviesScroller v-else :movies="movies" @refresh-needed="syncMoviesAfterMutation" />
 
-      <div v-if="!errorMessage && hasAnyStatusFilter && shouldShowPagination" class="my-movies-pagination">
+      <div v-if="!errorMessage && shouldShowPagination" class="my-movies-pagination">
         <v-pagination
           :model-value="currentPage"
           :length="paginationLength"

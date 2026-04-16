@@ -1,12 +1,8 @@
 import { zetaApiService } from './zetaApiService'
 import { getCurrentUserRequestHeaders } from './userRequestHeaders'
+import type { MovieSummary } from '../models/MovieSummary'
 
 const BASE_PATH = '/wishlistmovies'
-
-type MovieRelationApiItem = {
-  movieId?: unknown
-  MovieId?: unknown
-}
 
 function normalizeMovieIds(items: unknown[]): number[] {
   const ids = items
@@ -15,12 +11,17 @@ function normalizeMovieIds(items: unknown[]): number[] {
         return item
       }
 
+      if (typeof item === 'string') {
+        const parsed = Number(item)
+        return Number.isInteger(parsed) && parsed > 0 ? parsed : 0
+      }
+
       if (typeof item !== 'object' || item === null) {
         return 0
       }
 
-      const relation = item as MovieRelationApiItem
-      const rawMovieId = relation.movieId ?? relation.MovieId
+      const rawMovieId = (item as { movieId?: unknown; MovieId?: unknown }).movieId
+        ?? (item as { movieId?: unknown; MovieId?: unknown }).MovieId
       const parsedMovieId = Number(rawMovieId)
       return Number.isInteger(parsedMovieId) && parsedMovieId > 0 ? parsedMovieId : 0
     })
@@ -37,15 +38,15 @@ class WishlistMoviesService {
   }
 
   async getMovieIdsList(): Promise<number[]> {
-    const response = await zetaApiService.get<unknown[]>(BASE_PATH, undefined, {
+    const response = await zetaApiService.get<unknown[]>(`${BASE_PATH}/ids`, undefined, {
       headers: getCurrentUserRequestHeaders()
     })
 
     return normalizeMovieIds(response)
   }
 
-  addMovie(movieId: number): Promise<void> {
-    return zetaApiService.post<void, object>(`${BASE_PATH}/${movieId}`, {}, {
+  addMovie(movie: MovieSummary): Promise<void> {
+    return zetaApiService.post<void, MovieSummary>(BASE_PATH, movie, {
       headers: getCurrentUserRequestHeaders()
     })
   }

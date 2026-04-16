@@ -2,6 +2,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MoviesScroller from '../../components/MoviesScroller.vue'
+import type { MovieSummary } from '../../models/MovieSummary'
 import { tmdbApiService } from '../../services/tmdbApiService'
 import { watchedMoviesService } from '../../services/watchedMoviesService'
 import { wishlistMoviesService } from '../../services/wishlistMoviesService'
@@ -297,6 +298,29 @@ function isWatchLater(movieId: number): boolean {
 	return watchLaterMovieIds.value.has(movieId)
 }
 
+function buildMovieSummary(): MovieSummary | null {
+	if (!movie.value) {
+		return null
+	}
+
+	return {
+		id: movie.value.id,
+		title: movie.value.title ?? null,
+		original_title: movie.value.original_title ?? movie.value.title ?? null,
+		overview: movie.value.overview ?? null,
+		poster_path: movie.value.poster_path ?? null,
+		backdrop_path: movie.value.backdrop_path ?? null,
+		release_date: movie.value.release_date ?? null,
+		vote_average: movie.value.vote_average ?? 0,
+		vote_count: movie.value.vote_count ?? 0,
+		popularity: movie.value.popularity ?? 0,
+		original_language: movie.value.original_language ?? null,
+		genre_ids: movie.value.genres?.map((genre) => genre.id) ?? [],
+		adult: false,
+		video: false
+	}
+}
+
 async function syncMovieStates(movieId: number): Promise<void> {
 	try {
 		const [watchedIds, wishlistIds] = await Promise.all([
@@ -326,6 +350,11 @@ async function toggleSeen(): Promise<void> {
 	}
 
 	const movieId = movie.value.id
+	const movieSummary = buildMovieSummary()
+	if (!movieSummary) {
+		isSeenPending.value = false
+		return
+	}
 	isSeenPending.value = true
 
 	try {
@@ -333,7 +362,7 @@ async function toggleSeen(): Promise<void> {
 			await watchedMoviesService.deleteMovie(movieId)
 			seenMovieIds.value.delete(movieId)
 		} else {
-			await watchedMoviesService.addMovie(movieId)
+			await watchedMoviesService.addMovie(movieSummary)
 			seenMovieIds.value.add(movieId)
 		}
 
@@ -350,6 +379,11 @@ async function toggleWatch(): Promise<void> {
 	}
 
 	const movieId = movie.value.id
+	const movieSummary = buildMovieSummary()
+	if (!movieSummary) {
+		isWatchPending.value = false
+		return
+	}
 	isWatchPending.value = true
 
 	try {
@@ -357,7 +391,7 @@ async function toggleWatch(): Promise<void> {
 			await wishlistMoviesService.deleteMovie(movieId)
 			watchLaterMovieIds.value.delete(movieId)
 		} else {
-			await wishlistMoviesService.addMovie(movieId)
+			await wishlistMoviesService.addMovie(movieSummary)
 			watchLaterMovieIds.value.add(movieId)
 		}
 

@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { computed } from 'vue'
 import { authService } from '../services/authService'
+import type { MovieSummary } from '../models/MovieSummary'
 import { watchedMoviesService } from '../services/watchedMoviesService'
 import { wishlistMoviesService } from '../services/wishlistMoviesService'
 
@@ -19,6 +20,14 @@ type PrivateMovieItem = {
   BackdropPath?: string
   ReleaseDate?: string
   VoteAverage?: number
+  VoteCount?: number
+  Popularity?: number
+  OriginalLanguage?: string
+  Adult?: boolean
+  Video?: boolean
+  GenreIds?: number[]
+  GenreIDs?: number[]
+  genre_ids?: number[]
   IsWatched?: boolean
   IsSeen?: boolean
   title?: string
@@ -28,6 +37,12 @@ type PrivateMovieItem = {
   backdropPath?: string
   releaseDate?: string
   voteAverage?: number
+  voteCount?: number
+  popularity?: number
+  originalLanguage?: string
+  adult?: boolean
+  video?: boolean
+  genreIds?: number[]
   isWatched?: boolean
   isSeen?: boolean
 }
@@ -158,9 +173,49 @@ function isWatchPending(movieId: number): boolean {
   return pendingWatchMovieIds.value.has(movieId)
 }
 
+function buildMovieSummary(movieId: number): MovieSummary | null {
+  const sourceMovie = props.movies.find((movie) => getMovieId(movie) === movieId)
+  if (!sourceMovie) {
+    return null
+  }
+
+  const rawGenreIds = sourceMovie.GenreIds
+    ?? sourceMovie.GenreIDs
+    ?? sourceMovie.genre_ids
+    ?? sourceMovie.genreIds
+
+  const genreIds = Array.isArray(rawGenreIds)
+    ? rawGenreIds
+        .map((genreId) => Number(genreId))
+        .filter((genreId) => Number.isInteger(genreId) && genreId > 0)
+    : []
+
+  return {
+    id: movieId,
+    title: getMovieTitle(sourceMovie) || null,
+    original_title: sourceMovie.OriginalTitle ?? getMovieTitle(sourceMovie) ?? null,
+    overview: getMovieOverview(sourceMovie) || null,
+    poster_path: getPosterPath(sourceMovie) || null,
+    backdrop_path: sourceMovie.BackdropPath ?? sourceMovie.backdropPath ?? null,
+    release_date: getReleaseDate(sourceMovie) || null,
+    vote_average: getVoteAverage(sourceMovie),
+    vote_count: sourceMovie.VoteCount ?? sourceMovie.voteCount ?? 0,
+    popularity: sourceMovie.Popularity ?? sourceMovie.popularity ?? 0,
+    original_language: sourceMovie.OriginalLanguage ?? sourceMovie.originalLanguage ?? null,
+    genre_ids: genreIds,
+    adult: Boolean(sourceMovie.Adult ?? sourceMovie.adult),
+    video: Boolean(sourceMovie.Video ?? sourceMovie.video)
+  }
+}
+
 async function toggleAction(movieId: number, action: MovieActionType): Promise<void> {
   const pendingSet = action === 'seen' ? pendingSeenMovieIds.value : pendingWatchMovieIds.value
   if (pendingSet.has(movieId)) {
+    return
+  }
+
+  const movieSummary = buildMovieSummary(movieId)
+  if (!movieSummary) {
     return
   }
 
@@ -172,14 +227,14 @@ async function toggleAction(movieId: number, action: MovieActionType): Promise<v
         await watchedMoviesService.deleteMovie(movieId)
         seenMovieIds.value.delete(movieId)
       } else {
-        await watchedMoviesService.addMovie(movieId)
+        await watchedMoviesService.addMovie(movieSummary)
         seenMovieIds.value.add(movieId)
       }
     } else if (watchLaterMovieIds.value.has(movieId)) {
       await wishlistMoviesService.deleteMovie(movieId)
       watchLaterMovieIds.value.delete(movieId)
     } else {
-      await wishlistMoviesService.addMovie(movieId)
+      await wishlistMoviesService.addMovie(movieSummary)
       watchLaterMovieIds.value.add(movieId)
     }
 

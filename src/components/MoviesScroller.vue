@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { authService } from '../services/authService'
+import type { MovieSummary } from '../models/MovieSummary'
 import { watchedMoviesService } from '../services/watchedMoviesService'
 import { wishlistMoviesService } from '../services/wishlistMoviesService'
 
@@ -8,12 +9,19 @@ interface MovieItem {
   id: number
   title: string
   overview: string
+  original_title?: string
   poster_path?: string
   posterPath?: string
   backdrop_path?: string
   backdropPath?: string
   release_date: string
   vote_average: number
+  vote_count?: number
+  popularity?: number
+  original_language?: string
+  genre_ids?: number[]
+  adult?: boolean
+  video?: boolean
 }
 
 const props = defineProps<{
@@ -212,9 +220,38 @@ function isWatchPending(movieId: number): boolean {
   return pendingWatchMovieIds.value.has(movieId)
 }
 
+function buildMovieSummary(movieId: number): MovieSummary | null {
+  const sourceMovie = props.movies.find((movie) => movie.id === movieId)
+  if (!sourceMovie) {
+    return null
+  }
+
+  return {
+    id: sourceMovie.id,
+    title: sourceMovie.title ?? null,
+    original_title: sourceMovie.original_title ?? sourceMovie.title ?? null,
+    overview: sourceMovie.overview ?? null,
+    poster_path: sourceMovie.poster_path ?? sourceMovie.posterPath ?? null,
+    backdrop_path: sourceMovie.backdrop_path ?? sourceMovie.backdropPath ?? null,
+    release_date: sourceMovie.release_date ?? null,
+    vote_average: sourceMovie.vote_average ?? 0,
+    vote_count: sourceMovie.vote_count ?? 0,
+    popularity: sourceMovie.popularity ?? 0,
+    original_language: sourceMovie.original_language ?? null,
+    genre_ids: Array.isArray(sourceMovie.genre_ids) ? sourceMovie.genre_ids : [],
+    adult: Boolean(sourceMovie.adult),
+    video: Boolean(sourceMovie.video)
+  }
+}
+
 async function toggleAction(movieId: number, action: MovieActionType): Promise<void> {
   const pendingSet = action === 'seen' ? pendingSeenMovieIds.value : pendingWatchMovieIds.value
   if (pendingSet.has(movieId)) {
+    return
+  }
+
+  const movieSummary = buildMovieSummary(movieId)
+  if (!movieSummary) {
     return
   }
 
@@ -226,14 +263,14 @@ async function toggleAction(movieId: number, action: MovieActionType): Promise<v
         await watchedMoviesService.deleteMovie(movieId)
         seenMovieIds.value.delete(movieId)
       } else {
-        await watchedMoviesService.addMovie(movieId)
+        await watchedMoviesService.addMovie(movieSummary)
         seenMovieIds.value.add(movieId)
       }
     } else if (watchLaterMovieIds.value.has(movieId)) {
       await wishlistMoviesService.deleteMovie(movieId)
       watchLaterMovieIds.value.delete(movieId)
     } else {
-      await wishlistMoviesService.addMovie(movieId)
+      await wishlistMoviesService.addMovie(movieSummary)
       watchLaterMovieIds.value.add(movieId)
     }
 
