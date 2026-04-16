@@ -7,12 +7,33 @@ interface LoginApiResponse {
   jwt?: string
   username?: string
   email?: string
+  role?: string
   profileImg?: string
   user?: unknown
 }
 
 interface LoginUserInfo {
+  role?: string
+  roles?: unknown
   profileImg?: string
+}
+
+function getRoleFromLoginResponse(response: LoginApiResponse): string | undefined {
+  const user = (response.user as LoginUserInfo | undefined) ?? undefined
+
+  const directRole = response.role ?? user?.role
+  if (typeof directRole === 'string' && directRole.trim()) {
+    return directRole.trim()
+  }
+
+  if (Array.isArray(user?.roles)) {
+    const firstRole = user?.roles.find((role) => typeof role === 'string' && role.trim())
+    if (typeof firstRole === 'string' && firstRole.trim()) {
+      return firstRole.trim()
+    }
+  }
+
+  return undefined
 }
 
 class AuthService {
@@ -38,6 +59,7 @@ class AuthService {
         username: response.username ?? response.email ?? email,
         token,
         loggedInAt: new Date().toISOString(),
+        role: getRoleFromLoginResponse(response) ?? 'Viewer',
         profileImg: response.profileImg ?? (response.user as LoginUserInfo | undefined)?.profileImg,
         user: response.user
       }

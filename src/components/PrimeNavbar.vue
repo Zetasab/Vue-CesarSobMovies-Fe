@@ -12,12 +12,20 @@ const isProfileMenuOpen = ref(false)
 const isMobileViewport = ref(false)
 const isScrolled = ref(false)
 
-const navigationLinks = [
-  { label: 'Inicio', to: '/', icon: 'mdi-home-outline' },
-  { label: 'Buscar', to: '/buscar', icon: 'mdi-magnify' },
-  { label: 'Mis películas', to: '/mis-peliculas', icon: 'mdi-movie-open-outline' },
-  { label: 'Mis listas', to: '/mis-listas', icon: 'mdi-playlist-star' }
-]
+const isViewer = computed(() => (authService.getSession()?.role ?? '').trim().toLowerCase() === 'viewer')
+
+const navigationLinks = computed(() => {
+  const links = [
+    { label: 'Inicio', to: '/', icon: 'mdi-home-outline' },
+    { label: 'Buscar', to: '/buscar', icon: 'mdi-magnify' }
+  ]
+
+  if (!isViewer.value) {
+    links.push({ label: 'Mis películas', to: '/mis-peliculas', icon: 'mdi-movie-open-outline' })
+  }
+
+  return links
+})
 
 const profileImg = computed(() => authService.getSession()?.profileImg ?? '')
 

@@ -10,6 +10,7 @@ type QueryParams = Record<string, string | number | boolean>
 
 interface RequestOptions {
   requiresAuth?: boolean
+  headers?: HeadersInit
 }
 
 class ZetaApiService extends BaseApiService {
@@ -19,12 +20,13 @@ class ZetaApiService extends BaseApiService {
 
   get<T>(path: string, query?: QueryParams, options?: RequestOptions): Promise<T> {
     const pathWithQuery = this.appendQuery(path, query)
-    return this.request<T>(this.withMoviesPrefix(pathWithQuery), { method: 'GET' }, options)
+    return this.request<T>(this.withMoviesPrefix(pathWithQuery), { method: 'GET', headers: options?.headers }, options)
   }
 
   post<TResponse, TBody = unknown>(path: string, body: TBody, options?: RequestOptions): Promise<TResponse> {
     return this.request<TResponse>(this.withMoviesPrefix(path), {
       method: 'POST',
+      headers: options?.headers,
       body: JSON.stringify(body)
     }, options)
   }
@@ -32,12 +34,13 @@ class ZetaApiService extends BaseApiService {
   put<TResponse, TBody = unknown>(path: string, body: TBody, options?: RequestOptions): Promise<TResponse> {
     return this.request<TResponse>(this.withMoviesPrefix(path), {
       method: 'PUT',
+      headers: options?.headers,
       body: JSON.stringify(body)
     }, options)
   }
 
   delete<T>(path: string, options?: RequestOptions): Promise<T> {
-    return this.request<T>(this.withMoviesPrefix(path), { method: 'DELETE' }, options)
+    return this.request<T>(this.withMoviesPrefix(path), { method: 'DELETE', headers: options?.headers }, options)
   }
 
   login<T>(email: string, password: string, proyect: string): Promise<T> {

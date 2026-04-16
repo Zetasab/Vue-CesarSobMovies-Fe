@@ -6,6 +6,7 @@ export interface AuthSession {
   username: string
   token: string
   loggedInAt: string
+  role?: string
   profileImg?: string
   user?: unknown
 }
@@ -32,26 +33,7 @@ class SessionStorageService {
       return null
     }
 
-    const localValue = localStorage.getItem(key)
-    if (localValue) {
-      return localValue
-    }
-
     return sessionStorage.getItem(key)
-  }
-
-  private migrateSessionValueToLocalStorage(key: string): void {
-    if (!this.canUseStorage()) {
-      return
-    }
-
-    const sessionValue = sessionStorage.getItem(key)
-    if (!sessionValue) {
-      return
-    }
-
-    localStorage.setItem(key, sessionValue)
-    sessionStorage.removeItem(key)
   }
 
   saveAuthSession(session: AuthSession): void {
@@ -59,16 +41,14 @@ class SessionStorageService {
       return
     }
 
-    localStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session))
-    sessionStorage.removeItem(AUTH_SESSION_KEY)
+    sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify(session))
+    localStorage.removeItem(AUTH_SESSION_KEY)
   }
 
   getAuthSession(): AuthSession | null {
     if (!this.canUseStorage()) {
       return null
     }
-
-    this.migrateSessionValueToLocalStorage(AUTH_SESSION_KEY)
 
     const session = parseJson<AuthSession>(this.readStorageValue(AUTH_SESSION_KEY))
     if (!session?.token) {

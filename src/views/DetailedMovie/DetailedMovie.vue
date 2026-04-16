@@ -1,12 +1,11 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MoviesScroller from '../../components/MoviesScroller.vue'
-import { MovieModel } from '../../models/MovieModel'
-import { MovieUsersListsModel } from '../../models/MovieUsersListsModel'
-import { moviePrivateUserListService } from '../../services/moviePrivateUserListService'
 import { tmdbApiService } from '../../services/tmdbApiService'
-import { movieUsersListsService } from '../../services/movieUsersListsService'
+import { watchedMoviesService } from '../../services/watchedMoviesService'
+import { wishlistMoviesService } from '../../services/wishlistMoviesService'
+import { authService } from '../../services/authService'
 
 type MovieGenre = {
 	id: number
@@ -274,24 +273,13 @@ const formattedDuration = computed(() => {
 	return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
 })
 
-type MovieActionType = 'seen' | 'watch'
-
 const seenMovieIds = ref<Set<number>>(new Set())
 const watchLaterMovieIds = ref<Set<number>>(new Set())
-const isMobileViewport = ref(false)
-const desktopMenuKey = ref<MovieActionType | null>(null)
-const isMobileActionDialogOpen = ref(false)
-const userLists = ref<MovieUsersListsModel[]>([])
-const isLoadingActionLists = ref(false)
-const actionListsError = ref('')
-const selectedAction = ref<MovieActionType | null>(null)
-const selectedMovieId = ref<number | null>(null)
-const listMembershipById = ref<Record<string, boolean>>({})
-const pendingListId = ref<string | null>(null)
-const isPrivateListActive = ref(false)
-const isPrivateListPending = ref(false)
+const isSeenPending = ref(false)
+const isWatchPending = ref(false)
 const isSuccessSnackbarOpen = ref(false)
 const successSnackbarMessage = ref('')
+const isViewer = computed(() => (authService.getSession()?.role ?? '').trim().toLowerCase() === 'viewer')
 
 function formatCurrency(amount: number): string {
 	return new Intl.NumberFormat('en-US', {
@@ -309,182 +297,75 @@ function isWatchLater(movieId: number): boolean {
 	return watchLaterMovieIds.value.has(movieId)
 }
 
-function isDesktopMenuOpen(action: MovieActionType): boolean {
-	return !isMobileViewport.value && desktopMenuKey.value === action
-}
-
-function isListActive(listId: string): boolean {
-	return Boolean(listMembershipById.value[listId])
-}
-
-function buildMovieModel(): MovieModel {
-	if (!movie.value) {
-		throw new Error('Movie detail is not loaded.')
-	}
-
-	const movieModel = new MovieModel()
-	movieModel.idTMDB = movie.value.id
-	movieModel.title = movie.value.title
-	movieModel.originalTitle = movie.value.original_title
-	movieModel.overview = movie.value.overview
-	movieModel.posterPath = movie.value.poster_path ?? ''
-	movieModel.backdropPath = movie.value.backdrop_path ?? ''
-	movieModel.releaseDate = movie.value.release_date
-	movieModel.voteAverage = movie.value.vote_average
-	movieModel.voteCount = movie.value.vote_count
-	movieModel.originalLanguage = movie.value.original_language
-
-	return movieModel
-}
-
-async function loadListsForAction(action: MovieActionType, movieId: number): Promise<void> {
-	isLoadingActionLists.value = true
-	actionListsError.value = ''
-	listMembershipById.value = {}
-	isPrivateListActive.value = false
-
+async function syncMovieStates(movieId: number): Promise<void> {
 	try {
-		const lists = await movieUsersListsService.getListsByUserId()
-		userLists.value = lists
-
-		const [membershipPairs, privateExists] = await Promise.all([
-			Promise.all(
-				lists.map(async (list) => {
-					const exists =
-						action === 'seen'
-							? await movieUsersListsService.existsByIdTMDBIsSeen(list.id, movieId)
-							: await movieUsersListsService.existsByIdTMDBIsWatched(list.id, movieId)
-
-					return [list.id, exists] as const
-				})
-			),
-			action === 'seen'
-				? moviePrivateUserListService.existsByIdTMDBIsSeen(movieId)
-				: moviePrivateUserListService.existsByIdTMDBIsWatched(movieId)
+		const [watchedIds, wishlistIds] = await Promise.all([
+			watchedMoviesService.getMovieIdsList(),
+			wishlistMoviesService.getMovieIdsList()
 		])
 
-		listMembershipById.value = Object.fromEntries(membershipPairs)
-		isPrivateListActive.value = privateExists
+		seenMovieIds.value = new Set(watchedIds)
+		watchLaterMovieIds.value = new Set(wishlistIds)
 
-		if (action === 'seen') {
-			if (privateExists) {
-				seenMovieIds.value.add(movieId)
-			} else {
-				seenMovieIds.value.delete(movieId)
-			}
-		} else if (privateExists) {
-			watchLaterMovieIds.value.add(movieId)
-		} else {
+		if (!watchedIds.includes(movieId)) {
+			seenMovieIds.value.delete(movieId)
+		}
+
+		if (!wishlistIds.includes(movieId)) {
 			watchLaterMovieIds.value.delete(movieId)
 		}
 	} catch {
-		actionListsError.value = 'No se pudieron cargar las listas.'
-		userLists.value = []
-	} finally {
-		isLoadingActionLists.value = false
+		seenMovieIds.value = new Set()
+		watchLaterMovieIds.value = new Set()
 	}
 }
 
-async function toggleListSelection(listId: string): Promise<void> {
-	if (!selectedAction.value || selectedMovieId.value === null || pendingListId.value) {
+async function toggleSeen(): Promise<void> {
+	if (!movie.value || isSeenPending.value) {
 		return
 	}
 
-	const movieModel = buildMovieModel()
-	const isCurrentlyActive = isListActive(listId)
-	pendingListId.value = listId
+	const movieId = movie.value.id
+	isSeenPending.value = true
 
 	try {
-		if (selectedAction.value === 'seen') {
-			if (isCurrentlyActive) {
-				await movieUsersListsService.setMovieAsNotSeen(listId, movieModel)
-			} else {
-				await movieUsersListsService.setMovieAsIsSeen(listId, movieModel)
-			}
+		if (seenMovieIds.value.has(movieId)) {
+			await watchedMoviesService.deleteMovie(movieId)
+			seenMovieIds.value.delete(movieId)
 		} else {
-			movieModel.isWatched = !isCurrentlyActive
-			await movieUsersListsService.setMovieIsWatchedByModel(listId, movieModel)
-		}
-
-		listMembershipById.value = {
-			...listMembershipById.value,
-			[listId]: !isCurrentlyActive
+			await watchedMoviesService.addMovie(movieId)
+			seenMovieIds.value.add(movieId)
 		}
 
 		successSnackbarMessage.value = 'Guardado correctamente'
 		isSuccessSnackbarOpen.value = true
 	} finally {
-		pendingListId.value = null
+		isSeenPending.value = false
 	}
 }
 
-async function togglePrivateListSelection(): Promise<void> {
-	if (!selectedAction.value || selectedMovieId.value === null || isPrivateListPending.value) {
+async function toggleWatch(): Promise<void> {
+	if (!movie.value || isWatchPending.value) {
 		return
 	}
 
-	const movieModel = buildMovieModel()
-	isPrivateListPending.value = true
-	const isCurrentlyActive = isPrivateListActive.value
+	const movieId = movie.value.id
+	isWatchPending.value = true
 
 	try {
-		if (selectedAction.value === 'seen') {
-			if (isCurrentlyActive) {
-				await moviePrivateUserListService.setMovieAsNotSeen(movieModel.idTMDB)
-				seenMovieIds.value.delete(movieModel.idTMDB)
-			} else {
-				await moviePrivateUserListService.setMovieAsIsSeenByModel(movieModel)
-				seenMovieIds.value.add(movieModel.idTMDB)
-			}
+		if (watchLaterMovieIds.value.has(movieId)) {
+			await wishlistMoviesService.deleteMovie(movieId)
+			watchLaterMovieIds.value.delete(movieId)
 		} else {
-			if (isCurrentlyActive) {
-				await moviePrivateUserListService.setMovieAsNotWatched(movieModel.idTMDB)
-				watchLaterMovieIds.value.delete(movieModel.idTMDB)
-			} else {
-				movieModel.isWatched = true
-				await moviePrivateUserListService.setMovieAsIsWatchedByModel(movieModel)
-				watchLaterMovieIds.value.add(movieModel.idTMDB)
-			}
+			await wishlistMoviesService.addMovie(movieId)
+			watchLaterMovieIds.value.add(movieId)
 		}
 
-		isPrivateListActive.value = !isCurrentlyActive
 		successSnackbarMessage.value = 'Guardado correctamente'
 		isSuccessSnackbarOpen.value = true
 	} finally {
-		isPrivateListPending.value = false
+		isWatchPending.value = false
 	}
-}
-
-function openActionMenu(action: MovieActionType): void {
-	if (!movie.value) {
-		return
-	}
-
-	selectedMovieId.value = movie.value.id
-	selectedAction.value = action
-
-	if (isMobileViewport.value) {
-		isMobileActionDialogOpen.value = true
-		desktopMenuKey.value = null
-		void loadListsForAction(action, movie.value.id)
-		return
-	}
-
-	desktopMenuKey.value = desktopMenuKey.value === action ? null : action
-	if (desktopMenuKey.value) {
-		void loadListsForAction(action, movie.value.id)
-	}
-}
-
-function updateViewport(): void {
-	isMobileViewport.value = window.matchMedia('(max-width: 768px)').matches
-	if (isMobileViewport.value) {
-		desktopMenuKey.value = null
-	}
-}
-
-function onDocumentClick(): void {
-	desktopMenuKey.value = null
 }
 
 function companyLogoUrl(logoPath: string | null): string {
@@ -657,8 +538,8 @@ async function loadMovieDetails(): Promise<void> {
 	clearHeaderVideoTimer()
 	selectedImagePath.value = null
 	isImageDialogOpen.value = false
-	desktopMenuKey.value = null
-	isMobileActionDialogOpen.value = false
+	isSeenPending.value = false
+	isWatchPending.value = false
 
 	try {
 		const [movieData, credits, videos, images, recommendations, similar] = await Promise.all([
@@ -671,6 +552,7 @@ async function loadMovieDetails(): Promise<void> {
 		])
 
 		movie.value = movieData
+		await syncMovieStates(movieData.id)
 		castMembers.value = credits.cast ?? []
 		movieVideos.value = videos.results ?? []
 		const uniqueImages = [...(images.backdrops ?? []), ...(images.posters ?? [])].filter(
@@ -715,12 +597,6 @@ function goBack(): void {
 	router.push('/')
 }
 
-onMounted(() => {
-	updateViewport()
-	window.addEventListener('resize', updateViewport)
-	document.addEventListener('click', onDocumentClick)
-})
-
 watch(
 	featuredVideo,
 	() => {
@@ -739,8 +615,6 @@ watch(
 
 onBeforeUnmount(() => {
 	clearHeaderVideoTimer()
-	window.removeEventListener('resize', updateViewport)
-	document.removeEventListener('click', onDocumentClick)
 })
 </script>
 
@@ -780,82 +654,18 @@ onBeforeUnmount(() => {
 					</div>
 				</div>
 
-				<div class="detailed-movie-title-actions">
-					<div class="detailed-movie-action-wrapper" :class="{ 'is-open': isDesktopMenuOpen('seen') }">
-						<button class="detailed-movie-action detailed-movie-action--seen"
-							:class="{ 'is-active': isSeen(movie.id) }" type="button" aria-label="Marcar como vista"
-							@click.stop="openActionMenu('seen')">
-							<v-icon :icon="isSeen(movie.id) ? 'mdi-check-circle' : 'mdi-check-circle-outline'"
-								size="20" />
-						</button>
-						<div v-if="isDesktopMenuOpen('seen')" class="detailed-movie-action-menu" @click.stop>
-							<div v-if="isLoadingActionLists" class="detailed-movie-menu-state">Cargando...</div>
-							<div v-else-if="actionListsError" class="detailed-movie-menu-state">{{ actionListsError }}
-							</div>
-							<div v-else>
-								<p class="detailed-movie-dialog-section-title">En mis películas</p>
-								<button class="detailed-movie-dialog-list-item detailed-movie-dialog-list-item--private"
-									:class="{ 'is-active': isPrivateListActive }" type="button"
-									:disabled="isPrivateListPending" @click.stop="togglePrivateListSelection()">
-									<v-icon v-if="isPrivateListActive" icon="mdi-check" size="14"
-										class="detailed-movie-menu-item-check" />
-									Lista privada
-								</button>
+				<div v-if="!isViewer" class="detailed-movie-title-actions">
+					<button class="detailed-movie-action detailed-movie-action--seen"
+						:class="{ 'is-active': isSeen(movie.id) }" :disabled="isSeenPending" type="button"
+						aria-label="Marcar como vista" @click.stop="toggleSeen()">
+						<v-icon :icon="isSeen(movie.id) ? 'mdi-check-circle' : 'mdi-check-circle-outline'" size="20" />
+					</button>
 
-								<p class="detailed-movie-dialog-section-title">En mis listas</p>
-								<div v-if="!userLists.length" class="detailed-movie-menu-state">Sin listas</div>
-								<div v-else class="detailed-movie-dialog-list">
-									<button v-for="list in userLists" :key="list.id"
-										class="detailed-movie-dialog-list-item"
-										:class="{ 'is-active': isListActive(list.id) }" type="button"
-										:disabled="pendingListId === list.id"
-										@click.stop="toggleListSelection(list.id)">
-										<v-icon v-if="isListActive(list.id)" icon="mdi-check" size="14"
-											class="detailed-movie-menu-item-check" />
-										{{ list.name }}
-									</button>
-								</div>
-							</div>
-						</div>
-					</div>
-
-					<div class="detailed-movie-action-wrapper" :class="{ 'is-open': isDesktopMenuOpen('watch') }">
-						<button class="detailed-movie-action detailed-movie-action--watch"
-							:class="{ 'is-active': isWatchLater(movie.id) }" type="button"
-							aria-label="Añadir a quiero ver" @click.stop="openActionMenu('watch')">
-							<v-icon :icon="isWatchLater(movie.id) ? 'mdi-bookmark' : 'mdi-bookmark-plus-outline'"
-								size="20" />
-						</button>
-						<div v-if="isDesktopMenuOpen('watch')" class="detailed-movie-action-menu" @click.stop>
-							<div v-if="isLoadingActionLists" class="detailed-movie-menu-state">Cargando...</div>
-							<div v-else-if="actionListsError" class="detailed-movie-menu-state">{{ actionListsError }}
-							</div>
-							<div v-else>
-								<p class="detailed-movie-dialog-section-title">En mis películas</p>
-								<button class="detailed-movie-dialog-list-item detailed-movie-dialog-list-item--private"
-									:class="{ 'is-active': isPrivateListActive }" type="button"
-									:disabled="isPrivateListPending" @click.stop="togglePrivateListSelection()">
-									<v-icon v-if="isPrivateListActive" icon="mdi-check" size="14"
-										class="detailed-movie-menu-item-check" />
-									Lista privada
-								</button>
-
-								<p class="detailed-movie-dialog-section-title">En mis listas</p>
-								<div v-if="!userLists.length" class="detailed-movie-menu-state">Sin listas</div>
-								<div v-else class="detailed-movie-dialog-list">
-									<button v-for="list in userLists" :key="list.id"
-										class="detailed-movie-dialog-list-item"
-										:class="{ 'is-active': isListActive(list.id) }" type="button"
-										:disabled="pendingListId === list.id"
-										@click.stop="toggleListSelection(list.id)">
-										<v-icon v-if="isListActive(list.id)" icon="mdi-check" size="14"
-											class="detailed-movie-menu-item-check" />
-										{{ list.name }}
-									</button>
-								</div>
-							</div>
-						</div>
-					</div>
+					<button class="detailed-movie-action detailed-movie-action--watch"
+						:class="{ 'is-active': isWatchLater(movie.id) }" :disabled="isWatchPending" type="button"
+						aria-label="Añadir a quiero ver" @click.stop="toggleWatch()">
+						<v-icon :icon="isWatchLater(movie.id) ? 'mdi-bookmark' : 'mdi-bookmark-plus-outline'" size="20" />
+					</button>
 				</div>
 			</div>
 		</section>
@@ -1055,41 +865,6 @@ onBeforeUnmount(() => {
 			</a>
 		</section>
 	</main>
-
-	<v-dialog v-model="isMobileActionDialogOpen" max-width="320">
-		<v-card class="detailed-movie-dialog-card">
-			<v-card-text>
-				<div v-if="isLoadingActionLists" class="detailed-movie-menu-state">Cargando...</div>
-				<div v-else-if="actionListsError" class="detailed-movie-menu-state">{{ actionListsError }}</div>
-				<div v-else>
-					<p class="detailed-movie-dialog-section-title">En mis películas</p>
-					<button class="detailed-movie-dialog-list-item detailed-movie-dialog-list-item--private"
-						:class="{ 'is-active': isPrivateListActive }" type="button" :disabled="isPrivateListPending"
-						@click="togglePrivateListSelection()">
-						<v-icon v-if="isPrivateListActive" icon="mdi-check" size="14"
-							class="detailed-movie-menu-item-check" />
-						Lista privada
-					</button>
-
-					<p class="detailed-movie-dialog-section-title">En mis listas</p>
-					<div v-if="!userLists.length" class="detailed-movie-menu-state">Sin listas</div>
-					<div v-else class="detailed-movie-dialog-list">
-						<button v-for="list in userLists" :key="list.id" class="detailed-movie-dialog-list-item"
-							:class="{ 'is-active': isListActive(list.id) }" type="button"
-							:disabled="pendingListId === list.id" @click="toggleListSelection(list.id)">
-							<v-icon v-if="isListActive(list.id)" icon="mdi-check" size="14"
-								class="detailed-movie-menu-item-check" />
-							{{ list.name }}
-						</button>
-					</div>
-				</div>
-			</v-card-text>
-			<v-card-actions>
-				<v-spacer />
-				<v-btn variant="text" @click="isMobileActionDialogOpen = false">Cerrar</v-btn>
-			</v-card-actions>
-		</v-card>
-	</v-dialog>
 
 	<v-dialog v-model="isImageDialogOpen" max-width="1320">
 		<v-card class="detailed-movie-image-dialog">

@@ -60,9 +60,15 @@ const router = createRouter({
 
 router.beforeEach((to) => {
   const isAuthenticated = authService.isAuthenticated()
+  const currentRole = (authService.getSession()?.role ?? '').trim().toLowerCase()
+  const isViewer = currentRole === 'viewer'
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     return { name: 'login' }
+  }
+
+  if (to.name === 'my-movies' && isViewer) {
+    return { name: 'home' }
   }
 
   if (to.name === 'login' && isAuthenticated) {
