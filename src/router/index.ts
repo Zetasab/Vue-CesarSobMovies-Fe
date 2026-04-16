@@ -6,6 +6,9 @@ import MyMovies from '../views/MyMovies/MyMovies.vue'
 import MyLists from '../views/MyLists/MyLists.vue'
 import MoviesByList from '../views/MoviesByList/MoviesByList.vue'
 import Search from '../views/Search/Search.vue'
+import PrivacyPolicy from '../views/PrivacyPolicy/PrivacyPolicy.vue'
+import Register from '../views/Register/Register.vue'
+import VerifyEmail from '../views/VerifyEmail/VerifyEmail.vue'
 import { authService } from '../services/authService'
 
 const router = createRouter({
@@ -54,6 +57,21 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: Login
+    },
+    {
+      path: '/politica-privacidad-condiciones-uso',
+      name: 'privacy-policy',
+      component: PrivacyPolicy
+    },
+    {
+      path: '/register',
+      name: 'register',
+      component: Register
+    },
+    {
+      path: '/verify-email',
+      name: 'verify-email',
+      component: VerifyEmail
     }
   ]
 })

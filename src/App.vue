@@ -4,7 +4,7 @@ import { RouterLink, RouterView, useRoute } from 'vue-router'
 import PrimeNavbar from './components/PrimeNavbar.vue'
 
 const route = useRoute()
-const showNavbar = computed(() => route.name !== 'login')
+const showNavbar = computed(() => !['login', 'privacy-policy', 'register', 'verify-email'].includes(String(route.name ?? '')))
 const overlayNavbarRoutes = ['home', 'search', 'my-movies', 'my-lists', 'detailed-movie']
 const isMobileViewport = ref(false)
 

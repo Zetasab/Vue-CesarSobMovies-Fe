@@ -1,0 +1,84 @@
+.register-page {
+  min-height: 100vh;
+  width: 100%;
+  padding: clamp(1rem, 2.6vw, 2rem);
+  background:
+    radial-gradient(1000px 540px at 5% -15%, rgba(16, 49, 96, 0.33) 0%, transparent 58%),
+    radial-gradient(900px 560px at 100% 110%, rgba(8, 31, 68, 0.32) 0%, transparent 58%),
+    #00050d;
+}
+
+.register-shell {
+  width: min(560px, 100%);
+  margin: 0 auto;
+  border-radius: 0.8rem;
+  background: rgba(8, 24, 46, 0.78);
+  padding: clamp(1rem, 2.6vw, 1.6rem);
+}
+
+.register-header {
+  margin-bottom: 1rem;
+}
+
+.register-kicker {
+  margin: 0;
+  font-size: 0.74rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(200, 220, 244, 0.82);
+}
+
+.register-title {
+  margin: 0.3rem 0 0;
+  color: #f0f7ff;
+  font-size: 1.8rem;
+}
+
+.register-subtitle {
+  margin: 0.4rem 0 0;
+  color: #c8d8ee;
+  font-size: 0.93rem;
+}
+
+.register-form {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.register-password-rules {
+  margin: 0.25rem 0 0.2rem;
+  display: grid;
+  gap: 0.2rem;
+}
+
+.register-password-rules p {
+  margin: 0;
+  color: #d2dff1;
+  font-size: 0.82rem;
+}
+
+.register-password-rules p.is-valid {
+  color: #86efac;
+}
+
+.register-policy-link {
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.register-policy-link:hover {
+  color: #dbeafe;
+}
+
+.register-error {
+  margin: 0.1rem 0;
+  color: #f87171;
+  font-size: 0.88rem;
+}
+
+.register-actions {
+  margin-top: 0.35rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}

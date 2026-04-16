@@ -82,9 +82,58 @@
   margin-bottom: 0.5rem;
 }
 
+.login-test-user-banner {
+  margin: 0.15rem 0 0.4rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.55rem;
+  background: rgba(21, 64, 121, 0.35);
+}
+
+.login-test-user-label {
+  margin: 0;
+  color: #bfdbfe;
+  font-size: 0.8rem;
+}
+
+.login-test-user-email {
+  margin: 0.15rem 0 0;
+  color: #eff6ff;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.login-test-user-toggle {
+  margin-bottom: 0.45rem;
+  color: #eff6ff;
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.login-test-user-toggle:hover {
+  filter: brightness(1.08);
+}
+
 .login-remember {
   margin-top: -0.25rem;
   margin-bottom: 0.25rem;
+}
+
+.login-policies {
+  margin-bottom: 0.35rem;
+}
+
+.login-accept {
+  margin-top: -0.25rem;
+}
+
+.login-policy-link {
+  color: #93c5fd;
+  text-decoration: none;
+}
+
+.login-policy-link:hover {
+  color: #dbeafe;
 }
 
 .login-error-text {
@@ -96,6 +145,10 @@
 .login-feedback {
   margin-top: 0.5rem;
   margin-bottom: 0.75rem;
+}
+
+.login-secondary-actions {
+  margin-top: 0.25rem;
 }
 
 .login-submit {

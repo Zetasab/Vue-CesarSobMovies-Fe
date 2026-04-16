@@ -1,23 +1,27 @@
-# Build stage
-FROM node:20-alpine AS builder
+# syntax=docker/dockerfile:1
+
+FROM node:20-alpine AS deps
 WORKDIR /app
 
 COPY package*.json ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
-COPY . .
-RUN npm run build
-
-# Runtime stage
-FROM node:20-alpine AS runner
+FROM deps AS build
 WORKDIR /app
 
-RUN npm install -g serve
+COPY . .
 
-COPY --from=builder /app/dist ./dist
+# For GitHub Pages use your repo path as base, e.g. /Vue-CesarSobMovies-Fe/
+ARG VITE_BASE=/
+RUN npm run build -- --base=${VITE_BASE}
 
-ENV NODE_ENV=production
-ENV PORT=8080
-EXPOSE 8080
+# Artifact stage to export static files (dist/) in CI
+FROM alpine:3.20 AS artifact
+WORKDIR /out
+COPY --from=build /app/dist ./dist
 
-CMD ["sh", "-c", "serve -s dist -l tcp://0.0.0.0:${PORT:-8080}"]
+# Optional local preview stage
+FROM nginx:1.27-alpine AS preview
+COPY --from=build /app/dist /usr/share/nginx/html
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
