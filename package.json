@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vue-tsc -b && vite build",
+    "build:pages": "vue-tsc -b && vite build --base /",
     "preview": "vite preview",
     "new:view": "node scripts/create-view.mjs"
   },

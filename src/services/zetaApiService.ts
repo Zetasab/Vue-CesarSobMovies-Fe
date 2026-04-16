@@ -2,7 +2,7 @@ import { BaseApiService } from './baseApiService'
 import { sessionStorageService } from './sessionStorageService'
 
 const DEV_BASE_URL = 'http://localhost:5300/'
-const PROD_BASE_URL = 'https://zetaapi.up.railway.app/'
+const PROD_BASE_URL = 'https://cesarsobapigateway.up.railway.app/'
 
 const baseUrl = import.meta.env.VITE_ZETA_API_BASE_URL ?? (import.meta.env.DEV ? DEV_BASE_URL : PROD_BASE_URL)
 

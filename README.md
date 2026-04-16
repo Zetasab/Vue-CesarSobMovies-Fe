@@ -29,3 +29,20 @@ Esto genera:
 - `Movies.css`
 
 Después, registra la ruta en `src/router/index.ts`.
+
+## Deploy en GitHub Pages
+
+Se agregó el workflow `/.github/workflows/deploy-pages.yml` para publicar automáticamente en Pages.
+
+### Qué incluye el setup
+
+- Build de Vite en CI.
+- Fallback SPA (`dist/404.html`) para rutas de Vue Router.
+- Archivo `.nojekyll` para evitar problemas con assets.
+- Copia de `CNAME` al artifact final para dominio personalizado.
+
+### Configuración de GitHub (una sola vez)
+
+1. En el repositorio, ve a `Settings > Pages`.
+2. En `Build and deployment`, selecciona `Source: GitHub Actions`.
+3. Haz push a `main` para disparar el deploy.
