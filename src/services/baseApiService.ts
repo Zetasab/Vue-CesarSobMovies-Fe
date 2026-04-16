@@ -36,6 +36,8 @@ export class BaseApiService {
     const requiresAuth = options?.requiresAuth ?? true
     const headers = new Headers(init?.headers)
 
+    headers.set('X-Tracking-Sensitive-Consent', 'accepted')
+
     if (!headers.has('Content-Type') && init?.body) {
       headers.set('Content-Type', 'application/json')
     }
