@@ -1,48 +1,114 @@
-# Vue Movies FE
+<h1 align="center">
+  <span style="color:#E50914">🎬</span>
+  <span style="color:#FFFFFF"> CesarSob</span><span style="color:#E50914">Movies</span>
+</h1>
 
-## Estructura de views (encapsulada)
+<p align="center">
+  Por si quieres ver — <a href="https://movies.cesarsobrino.es"><strong>Live Demo</strong></a>
+</p>
 
-Para mantener el proyecto separado y controlado, cada view vive dentro de su propia carpeta en `src/views`.
+<p align="center">
+  <img src="videoproject.gif" alt="Demo del proyecto" width="100%" />
+</p>
 
-Ejemplo:
+---
 
-`src/views/Login/`
-- `Login.vue` (estructura/template)
-- `useLoginView.ts` (lógica)
-- `Login.css` (estilos)
+## ¿Qué es este proyecto?
 
-## Crear nuevas views
+CesarSobMovies es una aplicación web de prueba para explorar y gestionar películas. Permite buscar títulos, ver detalles de cada película, gestionar listas personalizadas (películas vistas, wishlist, listas privadas) y autenticarse con una cuenta propia.
 
-Usa este comando para crear una view con esa estructura automáticamente:
+Los datos de películas se obtienen de la **API de TMDB**, y la gestión de usuarios y listas se apoya en una **API propia (Zeta API)**.
 
-`npm run new:view NombreView`
+---
 
-Ejemplo:
+## Tecnologías utilizadas
 
-`npm run new:view Movies`
+| Categoría | Tecnología |
+|---|---|
+| Framework | Vue 3 (Composition API) |
+| Lenguaje | TypeScript |
+| Build tool | Vite |
+| UI | Vuetify 3 + Tailwind CSS 4 |
+| Routing | Vue Router 4 |
+| Tipografías | Montserrat, Roboto (@fontsource) |
+| Scroll suave | Lenis |
+| Iconos | Material Design Icons (@mdi/font) |
+| Deploy | GitHub Pages (workflow CI/CD) |
 
-Esto genera:
+---
 
-`src/views/Movies/`
-- `Movies.vue`
-- `useMoviesView.ts`
-- `Movies.css`
+## Estructura del proyecto
 
-Después, registra la ruta en `src/router/index.ts`.
+```
+src/
+├── assets/          # GIFs y recursos estáticos
+├── components/      # Componentes reutilizables (Navbar, Scrollers, Loading…)
+├── models/          # Modelos TypeScript (Movie, MovieList, etc.)
+├── router/          # Configuración de rutas (Vue Router)
+├── services/        # Llamadas a APIs (TMDB, Zeta API, Auth, Storage…)
+└── views/           # Vistas de la app (cada una en su propia carpeta)
+    ├── Home/
+    ├── Search/
+    ├── DetailedMovie/
+    ├── Login/
+    ├── Register/
+    ├── MyMovies/
+    ├── MyLists/
+    ├── MoviesByList/
+    ├── VerifyEmail/
+    └── PrivacyPolicy/
+```
 
-## Deploy en GitHub Pages
+Cada view sigue la misma estructura encapsulada:
 
-Se agregó el workflow `/.github/workflows/deploy-pages.yml` para publicar automáticamente en Pages.
+```
+src/views/NombreView/
+├── NombreView.vue   # Template + estructura
+└── NombreView.css   # Estilos propios
+```
 
-### Qué incluye el setup
+---
 
-- Build de Vite en CI.
-- Fallback SPA (`dist/404.html`) para rutas de Vue Router.
-- Archivo `.nojekyll` para evitar problemas con assets.
-- Copia de `CNAME` al artifact final para dominio personalizado.
+## Cómo iniciar el proyecto
 
-### Configuración de GitHub (una sola vez)
+### Requisitos previos
 
-1. En el repositorio, ve a `Settings > Pages`.
-2. En `Build and deployment`, selecciona `Source: GitHub Actions`.
-3. Haz push a `main` para disparar el deploy.
+- Node.js 18+
+- npm
+
+### Instalación
+
+```bash
+npm install
+```
+
+### Desarrollo local
+
+```bash
+npm run dev
+```
+
+La app arranca en `http://localhost:5173` por defecto.
+
+### Build de producción
+
+```bash
+npm run build
+```
+
+### Preview del build
+
+```bash
+npm run preview
+```
+
+### Crear una nueva view
+
+```bash
+npm run new:view NombreView
+```
+
+Genera automáticamente la carpeta con `NombreView.vue` y `NombreView.css` en `src/views/`. Después, registra la ruta en `src/router/index.ts`.
+
+---
+
