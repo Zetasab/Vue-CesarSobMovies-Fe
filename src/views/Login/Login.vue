@@ -24,8 +24,10 @@ const isBusy = computed(() => feedbackState.value !== 'idle')
 const showPassword = ref(false)
 const rememberUser = ref(false)
 const acceptPolicies = ref(false)
+const showProjectNotice = ref(false)
 const proyect = 'mvs'
 const ACCEPT_POLICIES_STORAGE_KEY = 'login-accept-policies'
+const PROJECT_NOTICE_STORAGE_KEY = 'login-project-notice-accepted'
 const TEST_USER_EMAIL = 'user@cesarsobrino.es'
 const useTestUser = ref(false)
 
@@ -45,10 +47,28 @@ function saveAcceptedPoliciesToStorage(value: boolean): void {
   window.localStorage.setItem(ACCEPT_POLICIES_STORAGE_KEY, String(value))
 }
 
+function loadProjectNoticeFromStorage(): void {
+  if (typeof window === 'undefined') {
+    showProjectNotice.value = false
+    return
+  }
+
+  showProjectNotice.value = window.localStorage.getItem(PROJECT_NOTICE_STORAGE_KEY) !== 'true'
+}
+
+function acceptProjectNotice(): void {
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(PROJECT_NOTICE_STORAGE_KEY, 'true')
+  }
+
+  showProjectNotice.value = false
+}
+
 onMounted(() => {
   const rememberedEmail = authService.getRememberedUsername()
   const rememberedPassword = authService.getRememberedPassword()
   loadAcceptedPoliciesFromStorage()
+  loadProjectNoticeFromStorage()
 
   if (route.query.test === 'true') {
     useTestUser.value = true
@@ -122,6 +142,29 @@ async function onSubmit(): Promise<void> {
 
 <template>
   <main class="login-page">
+    <Transition name="project-notice">
+      <div v-if="showProjectNotice" class="project-notice-backdrop">
+        <aside class="project-notice" role="dialog" aria-modal="true" aria-labelledby="project-notice-title">
+          <div class="project-notice__icon-wrap" aria-hidden="true">
+            <v-icon icon="mdi-flask-outline" size="30" />
+          </div>
+          <div class="project-notice__content">
+            <p class="project-notice__eyebrow">AVISO IMPORTANTE</p>
+            <h2 id="project-notice-title" class="project-notice__title">Proyecto personal de pruebas</h2>
+            <p class="project-notice__text">
+              Esta web es un proyecto personal, no comercial. Puede que alguna funcionalidad no se comporte siempre como esperas.
+            </p>
+            <p class="project-notice__text">
+              Si tienes cualquier problema, ponte en contacto con el administrador.
+            </p>
+            <v-btn color="primary" variant="flat" class="project-notice__button" @click="acceptProjectNotice">
+              Entendido, continuar
+            </v-btn>
+          </div>
+        </aside>
+      </div>
+    </Transition>
+
     <section class="login-shell">
       <div class="login-layout">
         <div class="login-panel">
@@ -227,7 +270,40 @@ async function onSubmit(): Promise<void> {
               <v-btn variant="text" :disabled="isBusy" @click="router.push({ name: 'register' })">
                 Crear usuario
               </v-btn>
+              <v-btn variant="text" :disabled="isBusy" class="login-forgot-btn" @click="router.push({ name: 'forgot-password' })">
+                He olvidado su contraseña
+              </v-btn>
             </div>
+
+            <section class="login-social" aria-label="Redes sociales">
+              <p class="login-social__title">Contacto y redes</p>
+              <div class="login-social__links">
+                <a class="login-social__link" href="mailto:cesarsobworkspace@gmail.com" aria-label="Enviar email">
+                  <v-icon icon="mdi-email-outline" size="18" />
+                  <span>Correo</span>
+                </a>
+                <a
+                  class="login-social__link"
+                  href="https://www.linkedin.com/in/cesar-sobrino-arribas-1b887021b/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Abrir perfil de LinkedIn"
+                >
+                  <v-icon icon="mdi-linkedin" size="18" />
+                  <span>LinkedIn</span>
+                </a>
+                <a
+                  class="login-social__link"
+                  href="https://github.com/Zetasab"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Abrir perfil de GitHub"
+                >
+                  <v-icon icon="mdi-github" size="18" />
+                  <span>GitHub</span>
+                </a>
+              </div>
+            </section>
 
           </v-form>
         </div>

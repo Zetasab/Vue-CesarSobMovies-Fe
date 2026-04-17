@@ -9,6 +9,7 @@ import Search from '../views/Search/Search.vue'
 import PrivacyPolicy from '../views/PrivacyPolicy/PrivacyPolicy.vue'
 import Register from '../views/Register/Register.vue'
 import VerifyEmail from '../views/VerifyEmail/VerifyEmail.vue'
+import ForgotPassword from '../views/ForgotPassword/ForgotPassword.vue'
 import { authService } from '../services/authService'
 
 const router = createRouter({
@@ -72,6 +73,11 @@ const router = createRouter({
       path: '/verify-email',
       name: 'verify-email',
       component: VerifyEmail
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: ForgotPassword
     }
   ]
 })
